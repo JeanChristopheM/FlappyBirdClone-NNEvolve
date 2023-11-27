@@ -24,7 +24,7 @@ import {
   _TERMINAL_VELOCITY,
   _TREADMILL_SPEED,
   _UPWARDS_ACCELERATION,
-  defaultStartingBehaviours,
+  // defaultStartingBehaviours,
 } from "./constants";
 
 // . CLASS DEFINITION
