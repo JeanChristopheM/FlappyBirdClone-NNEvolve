@@ -1,4 +1,8 @@
-import { IGenotype, IPopulationParams } from "./interfaces.js";
+import {
+  IGenotype,
+  IPopulationParams,
+  TGenerationColors,
+} from "./interfaces.js";
 import { math } from "./math.js";
 
 export const population = (function () {
@@ -34,14 +38,42 @@ export const population = (function () {
         return this._lastGeneration?.parents[0];
       }
 
-      Step(_tgtImgData?: number) {
+      Step(generationColor: TGenerationColors) {
         const parents = this._population.sort((a, b) => b.fitness - a.fitness);
 
         this._lastGeneration = { parents: parents };
         this._generations += 1;
+        this._SaveGenomeIfBetterThanLocalStorage(generationColor);
 
         this._population = this._BreedNewPopulation(parents);
-        console.log(this._population[0]);
+      }
+
+      _SaveGenomeIfBetterThanLocalStorage(generationColor: TGenerationColors) {
+        const fittest = this.Fittest();
+        if (fittest) {
+          const currentlySaved = localStorage.getItem(generationColor);
+          if (currentlySaved) {
+            const savedGenome: IGenotype = JSON.parse(currentlySaved);
+            if (savedGenome.fitness < fittest.fitness) {
+              localStorage.setItem(
+                generationColor,
+                JSON.stringify(this._CopyGenotype(this.Fittest()!, true))
+              );
+            }
+          } else {
+            localStorage.setItem(
+              generationColor,
+              JSON.stringify(this._CopyGenotype(this.Fittest()!, true))
+            );
+          }
+        }
+      }
+
+      _CopyGenotype(g: IGenotype, keepFitness: boolean = false) {
+        return {
+          fitness: keepFitness ? g.fitness : 1,
+          genotype: [...g.genotype],
+        };
       }
 
       _BreedNewPopulation(parents: IGenotype[]) {
@@ -69,13 +101,6 @@ export const population = (function () {
           return p;
         }
 
-        function _CopyGenotype(g: IGenotype) {
-          return {
-            fitness: g.fitness,
-            genotype: [...g.genotype],
-          };
-        }
-
         const newPopulation: IGenotype[] = [];
         const totalFitness = parents.reduce((t, p) => t + p.fitness, 0);
         const numChildren = Math.ceil(
@@ -88,6 +113,7 @@ export const population = (function () {
             Math.ceil(parents.length * this._params.breed.selectionCutoff)
           ),
         ];
+
         for (let j = 0; j < numChildren; j++) {
           const i = j % top.length;
           const p1 = top[i];
@@ -99,7 +125,7 @@ export const population = (function () {
             .slice(0, index)
             .concat(p2.genotype.slice(index));
 
-          newPopulation.push(_CopyGenotype({ fitness: 1, genotype: g }));
+          newPopulation.push(this._CopyGenotype({ fitness: 1, genotype: g }));
         }
 
         // Let's say keep top X% go through, but with mutations
@@ -110,7 +136,7 @@ export const population = (function () {
           ),
         ];
 
-        newPopulation.push(...topX.map((x) => _CopyGenotype(x)));
+        newPopulation.push(...topX.map((x) => this._CopyGenotype(x)));
 
         // Mutations!
         for (let p of newPopulation) {
@@ -132,7 +158,7 @@ export const population = (function () {
 
         // Immortality granted to the winners from the last life.
         // May the odds be forever in your favour.
-        newPopulation.push(...topX.map((x) => _CopyGenotype(x)));
+        newPopulation.push(...topX.map((x) => this._CopyGenotype(x)));
 
         // Create a bunch of random crap to fill out the rest.
         while (newPopulation.length < parents.length) {
