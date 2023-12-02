@@ -113,3 +113,11 @@ export interface IPipe {
   readonly X: number;
   readonly Width: number;
 }
+
+export type TGenerationColors = "red" | "blue" | "green";
+export type TGenerationState = {
+  active: boolean;
+  color: number;
+  nnDefinition: INeuronShape[];
+  previousBest: string | null;
+};

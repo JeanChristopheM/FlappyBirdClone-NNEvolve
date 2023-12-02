@@ -132,28 +132,6 @@ export const bird = (function () {
     }
   }
 
-  class FlappyBird_Manual extends _FlappyBirdObject {
-    constructor(scene: Scene) {
-      super(scene);
-
-      this._frameInputs = [];
-    }
-
-    Update(params: IUpdateBirdsParams) {
-      this._HandleInput(params);
-
-      super.Update(params);
-    }
-
-    _HandleInput(params: IUpdateBirdsParams) {
-      if (!params.keys.up) {
-        return;
-      }
-
-      this._velocity += _UPWARDS_ACCELERATION;
-    }
-  }
-
   class FlappyBird_NeuralNet extends _FlappyBirdObject {
     _populationEntity: IGenotype;
     _model: {
@@ -197,8 +175,7 @@ export const bird = (function () {
       const inputs = _Params(this as unknown as IBird, params.nearestPipes);
       const decision = this._model.predict(inputs);
 
-      // @ts-ignore
-      if (decision > 0.5) {
+      if (decision[0] > 0.5) {
         this._velocity += this._config.acceleration;
       }
 
@@ -211,7 +188,6 @@ export const bird = (function () {
   }
 
   return {
-    FlappyBird_Manual: FlappyBird_Manual,
     FlappyBird_NeuralNet: FlappyBird_NeuralNet,
   };
 })();
