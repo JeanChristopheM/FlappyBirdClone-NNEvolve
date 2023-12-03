@@ -77,7 +77,7 @@ export interface IPopulationParams {
   };
   shapes: INeuronShape[];
   tint: number;
-  defaultGenotype?: number[];
+  savedGeneration?: TSavedGeneration;
 }
 
 export interface IGenotype {
@@ -85,13 +85,22 @@ export interface IGenotype {
   genotype: number[];
 }
 
+export type TStepFunction = (
+  generationColor: TGenerationColors,
+  generationDetails?: {
+    alive: number;
+    highScore: number;
+    generationCount: number;
+  }
+) => void;
+
 export interface IPopulation {
   _params: IPopulationParams;
   _population: IGenotype[];
   _generations: number;
   _lastGeneration: { parents: IGenotype[] } | null;
   Fittest(): IGenotype | undefined;
-  Step(tgtImgData?: unknown | undefined): void;
+  Step: TStepFunction;
 }
 export interface IPipeParams {
   scene: Phaser.Scene | undefined;
@@ -119,5 +128,18 @@ export type TGenerationState = {
   active: boolean;
   color: number;
   nnDefinition: INeuronShape[];
-  previousBest: string | null;
+  savedGeneration: TSavedGeneration | null;
+};
+
+export type TSavedGeneration = {
+  alive: number;
+  highScore: number;
+  generationCount: number;
+  winningGenotype?: IGenotype;
+};
+
+export type IGenerationChoice = IKeyInColors<TGenerationState>;
+
+export type IKeyInColors<T> = {
+  [key in TGenerationColors]: T;
 };
