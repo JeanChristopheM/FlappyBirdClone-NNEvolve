@@ -1,8 +1,9 @@
+import { Game } from "phaser";
 import { bird } from "./bird";
 import { ffnet } from "./ffnet";
 import { pipe } from "./pipe";
 import { population } from "./population";
-import {
+import type {
   IBird,
   IGenerationChoice,
   IKeyInColors,
@@ -11,10 +12,10 @@ import {
   IPipe,
   IPopulation,
   IPopulationParams,
+  TGameStats,
   TGenerationColors,
   TSavedGeneration,
 } from "./interfaces";
-import { Game } from "phaser";
 import {
   COLOR_BLUE,
   COLOR_GREEN,
@@ -34,10 +35,14 @@ import {
   _TREADMILL_SPEED,
   _UPWARDS_ACCELERATION,
   settings,
-  defaultSavedGenerationObject,
-  // defaultStartingBehaviours,
 } from "./constants";
-import { generateInitStats } from "./utils";
+import {
+  generateInitStats,
+  generateSavingData,
+  handleResetLocalStorageCallback,
+  loadSky,
+  preloadAssets,
+} from "./utils";
 
 // . CLASS DEFINITION
 class FlappyBirdGame {
@@ -47,12 +52,7 @@ class FlappyBirdGame {
   _settings: IGenerationChoice;
   _generationsColors: TGenerationColors[];
   _scene: Phaser.Scene | undefined;
-  _stats:
-    | {
-        score: number;
-        generations: IKeyInColors<TSavedGeneration>;
-      }
-    | undefined;
+  _stats: TGameStats;
 
   _statsText1: Phaser.GameObjects.Text | null;
   _statsText2: Phaser.GameObjects.Text | null;
@@ -94,14 +94,11 @@ class FlappyBirdGame {
         );
     });
 
-    let handleResetLocalStorageCallback = () => {
-      this._generationsColors.forEach((gc) => {
-        localStorage.removeItem(gc);
-      });
-    };
     const resetBtn: HTMLButtonElement | null =
       document.querySelector("#reset_btn");
-    if (resetBtn) resetBtn.onclick = handleResetLocalStorageCallback;
+    if (resetBtn)
+      resetBtn.onclick = () =>
+        handleResetLocalStorageCallback(this._generationsColors);
   }
 
   _CreatePopulation(
@@ -132,7 +129,13 @@ class FlappyBirdGame {
     };
     if (savedGeneration) params.savedGeneration = savedGeneration;
 
-    return new population.Population(params);
+    return new population.Population(
+      params,
+      (color: TGenerationColors, generationCount: number) => {
+        if (this._stats)
+          this._stats.generations[color].generationCount = generationCount;
+      }
+    );
   }
 
   _Destroy() {
@@ -152,22 +155,8 @@ class FlappyBirdGame {
     this._previousFrame = null;
   }
 
-  _GetPopulationByColor(color: TGenerationColors) {
-    return this._populations?.find(
-      (p) => this._settings[color].color === p._params.tint
-    );
-  }
-
-  _GetStatsPerGen(color: TGenerationColors) {
-    const result = {
-      alive: this._stats?.generations[color].alive || 0,
-      highScore: this._stats?.generations[color].highScore || 0,
-      generationCount: this._GetPopulationByColor(color)?._generations || 0,
-    };
-    return result;
-  }
-
-  _Init(previousGenerations?: IKeyInColors<TSavedGeneration>) {
+  _Init(previousGenerations: IKeyInColors<TSavedGeneration>) {
+    // Creating initial 5 pipes.
     for (let i = 0; i < 5; i += 1) {
       this._pipes.push(
         new pipe.PipePairObject({
@@ -180,6 +169,7 @@ class FlappyBirdGame {
       );
     }
 
+    // Initializing some gameOver boolean, stats var + display
     this._gameOver = false;
     this._stats = generateInitStats(previousGenerations);
 
@@ -207,13 +197,14 @@ class FlappyBirdGame {
         { ...style, fixedWidth: 0 }
       );
 
+    // Initializing birds and making first generation
     this._birds = [];
     if (this._populations && this._scene) {
       for (let curPop of this._populations) {
         const color = this._generationsColors.find((key) => {
           return this._settings[key].color === curPop._params.tint;
         })!;
-        curPop.Step(color, this._GetStatsPerGen(color));
+        curPop.Step(color, previousGenerations[color]);
 
         this._birds.push(
           ...curPop._population.map(
@@ -243,15 +234,13 @@ class FlappyBirdGame {
       type: Phaser.AUTO,
       scene: {
         preload: function () {
-          // @ts-ignore
-          self._OnPreload(this);
+          self._OnPreload(this as unknown as Phaser.Scene);
         },
         create: function () {
           self._OnCreate();
         },
         update: function () {
-          // @ts-ignore
-          self._OnUpdate(this);
+          self._OnUpdate(this as unknown as Phaser.Scene);
         },
       },
       scale: {
@@ -268,53 +257,40 @@ class FlappyBirdGame {
 
   _OnPreload(scene: Phaser.Scene) {
     this._scene = scene;
-    this._scene.load.image("sky", "assets/sky.png");
-    this._scene.load.image("bird", "assets/bird.png");
-    this._scene.load.image("bird-colour", "assets/bird-colour.png");
-    this._scene.load.image("pipe", "assets/pipe.png");
+    preloadAssets(this._scene);
   }
 
   _OnCreate() {
     if (!this._scene) return;
-    const s = this._scene.add.image(0, 0, "sky");
-    s.displayOriginX = 0;
-    s.displayOriginY = 0;
-    s.displayWidth = _CONFIG_WIDTH;
-    s.displayHeight = _CONFIG_HEIGHT;
-
+    loadSky(this._scene);
     this._keys = {
       up: this._scene.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.UP),
       f: this._scene.input.keyboard!.addKey("F"),
       r: this._scene.input.keyboard!.addKey("R"),
     };
-
-    this._keys.f.on(
+    this._keys?.f.on(
       "down",
-      function () {
-        // @ts-ignore
-        if (this._scene.scale.isFullscreen) {
-          // @ts-ignore
-          this._scene.scale.stopFullscreen();
-        } else {
-          // @ts-ignore
-          this._scene.scale.startFullscreen();
+      () => {
+        if (this._scene) {
+          if (this._scene.scale.isFullscreen) {
+            this._scene.scale.stopFullscreen();
+          } else {
+            this._scene.scale.startFullscreen();
+          }
         }
       },
       this
     );
 
-    this._keys.r.on(
+    this._keys?.r.on(
       "down",
-      function () {
-        // @ts-ignore
-        this._Destroy();
-        // @ts-ignore
-        this._Init();
+      () => {
+        this._GameOver();
       },
       this
     );
 
-    this._Init();
+    this._Init(generateSavingData(this._generationsColors));
   }
 
   _OnUpdate(scene: Phaser.Scene) {
@@ -492,17 +468,7 @@ class FlappyBirdGame {
 
     setTimeout(() => {
       this._Destroy();
-      this._Init(
-        this._generationsColors.reduce((acc, k) => {
-          acc[k] = {
-            alive: this._stats?.generations[k].alive || 0,
-            generationCount: this._stats?.generations[k].generationCount || 0,
-            highScore: this._stats?.generations[k].highScore || 0,
-            winningGenotype: this._stats?.generations[k].winningGenotype,
-          };
-          return acc;
-        }, defaultSavedGenerationObject)
-      );
+      this._Init(generateSavingData(this._generationsColors, this._stats));
     }, 2000);
   }
 
@@ -514,22 +480,22 @@ class FlappyBirdGame {
       const text2 =
         this._stats.score +
         "\n" +
-        this._generationsColors.reduce((acc, cur) => {
+        this._generationsColors.reduce((acc, color) => {
           return acc
-            .concat(cur)
-            .concat(`: ${this._GetPopulationByColor(cur)?._generations} `);
+            .concat(color)
+            .concat(`: ${this._stats?.generations[color].generationCount} `);
         }, "") +
         "\n" +
-        this._generationsColors.reduce((acc, cur) => {
+        this._generationsColors.reduce((acc, color) => {
           return acc
-            .concat(cur)
-            .concat(`: ${this._stats?.generations[cur].alive} `);
+            .concat(color)
+            .concat(`: ${this._stats?.generations[color].alive} `);
         }, "") +
         "\n" +
-        this._generationsColors.reduce((acc, cur) => {
+        this._generationsColors.reduce((acc, color) => {
           return acc
-            .concat(cur)
-            .concat(`: ${this._stats?.generations[cur].highScore} `);
+            .concat(color)
+            .concat(`: ${this._stats?.generations[color].highScore} `);
         }, "") +
         "\n";
       this._statsText2.text = text2;
@@ -537,6 +503,4 @@ class FlappyBirdGame {
   }
 }
 
-const game = new FlappyBirdGame();
-//@ts-ignore
-window.finishGame = () => game._GameOver();
+new FlappyBirdGame();
