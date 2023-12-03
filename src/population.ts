@@ -2,6 +2,7 @@ import {
   IGenotype,
   IPopulationParams,
   TGenerationColors,
+  TSavedGeneration,
 } from "./interfaces.js";
 import { math } from "./math.js";
 
@@ -21,11 +22,12 @@ export const population = (function () {
           (_) => ({
             fitness: 1,
             genotype:
-              this._params.defaultGenotype || this._CreateRandomGenotype(),
+              this._params.savedGeneration?.winningGenotype?.genotype ||
+              this._CreateRandomGenotype(),
           })
         );
         this._lastGeneration = null;
-        this._generations = 0;
+        this._generations = params.savedGeneration?.generationCount || 0;
       }
 
       _CreateRandomGenotype() {
@@ -38,33 +40,61 @@ export const population = (function () {
         return this._lastGeneration?.parents[0];
       }
 
-      Step(generationColor: TGenerationColors) {
+      Step(
+        generationColor: TGenerationColors,
+        generationDetails?: {
+          alive: number;
+          highScore: number;
+          generationCount: number;
+        }
+      ) {
         const parents = this._population.sort((a, b) => b.fitness - a.fitness);
 
         this._lastGeneration = { parents: parents };
         this._generations += 1;
-        this._SaveGenomeIfBetterThanLocalStorage(generationColor);
+        this._SaveGenomeIfBetterThanLocalStorage(
+          generationColor,
+          generationDetails
+        );
 
         this._population = this._BreedNewPopulation(parents);
       }
 
-      _SaveGenomeIfBetterThanLocalStorage(generationColor: TGenerationColors) {
+      _SaveGenomeIfBetterThanLocalStorage(
+        generationColor: TGenerationColors,
+        generationDetails?: {
+          alive: number;
+          highScore: number;
+          generationCount: number;
+        }
+      ) {
         const fittest = this.Fittest();
+
         if (fittest) {
-          const currentlySaved = localStorage.getItem(generationColor);
+          const currentlySavedString = localStorage.getItem(generationColor);
+          const currentlySaved = currentlySavedString
+            ? JSON.parse(currentlySavedString)
+            : null;
+          const copiedGenotype = this._CopyGenotype(this.Fittest()!, true);
+
+          const saveGeneration = (itemToSave: TSavedGeneration) => {
+            localStorage.setItem(generationColor, JSON.stringify(itemToSave));
+          };
+
+          const itemToSave: TSavedGeneration = {
+            ...currentlySaved,
+            generationCount: generationDetails?.generationCount,
+          };
+
           if (currentlySaved) {
-            const savedGenome: IGenotype = JSON.parse(currentlySaved);
-            if (savedGenome.fitness < fittest.fitness) {
-              localStorage.setItem(
-                generationColor,
-                JSON.stringify(this._CopyGenotype(this.Fittest()!, true))
-              );
+            const savedGenome = currentlySaved.winningGenotype;
+            if (savedGenome?.fitness || 0 < fittest.fitness) {
+              itemToSave.highScore = generationDetails?.highScore || 0;
+              itemToSave.winningGenotype = copiedGenotype;
             }
+            saveGeneration(itemToSave);
           } else {
-            localStorage.setItem(
-              generationColor,
-              JSON.stringify(this._CopyGenotype(this.Fittest()!, true))
-            );
+            saveGeneration(itemToSave);
           }
         }
       }

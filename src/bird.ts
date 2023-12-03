@@ -68,6 +68,7 @@ export const bird = (function () {
 
     Destroy() {
       this._sprite.destroy();
+      this._spriteTint.destroy();
     }
 
     Update(params: IUpdateBirdsParams) {

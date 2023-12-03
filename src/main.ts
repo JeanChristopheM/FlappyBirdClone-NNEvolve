@@ -4,19 +4,22 @@ import { pipe } from "./pipe";
 import { population } from "./population";
 import {
   IBird,
+  IGenerationChoice,
+  IKeyInColors,
   IKeys,
   INeuronShape,
   IPipe,
   IPopulation,
   IPopulationParams,
   TGenerationColors,
-  TGenerationState,
+  TSavedGeneration,
 } from "./interfaces";
 import { Game } from "phaser";
 import {
   COLOR_BLUE,
   COLOR_GREEN,
   COLOR_RED,
+  GENERATIONS_COLORS,
   GENERATION_BIRD_AMOUNT,
   _AMOUT_OF_PIPES_FOR_INPUTS,
   _BIRD_POS_X,
@@ -30,58 +33,24 @@ import {
   _TERMINAL_VELOCITY,
   _TREADMILL_SPEED,
   _UPWARDS_ACCELERATION,
+  settings,
+  defaultSavedGenerationObject,
   // defaultStartingBehaviours,
 } from "./constants";
-
-let highScore = 0;
-
-const generationChoice: {
-  [key in TGenerationColors]: TGenerationState;
-} = {
-  red: {
-    active: true,
-    color: COLOR_RED,
-    nnDefinition: [
-      { size: 7 },
-      { size: 5, activation: ffnet.relu },
-      { size: 1, activation: ffnet.sigmoid },
-    ],
-    previousBest: localStorage.getItem("red"),
-  },
-  blue: {
-    active: true,
-    color: COLOR_BLUE,
-    nnDefinition: [
-      { size: 7 },
-      { size: 9, activation: ffnet.relu },
-      { size: 1, activation: ffnet.sigmoid },
-    ],
-    previousBest: localStorage.getItem("blue"),
-  },
-  green: {
-    active: true,
-    color: COLOR_GREEN,
-    nnDefinition: [
-      { size: 7 },
-      { size: 9, activation: ffnet.relu },
-      { size: 9, activation: ffnet.relu },
-      { size: 1, activation: ffnet.sigmoid },
-    ],
-    previousBest: localStorage.getItem("green"),
-  },
-};
+import { generateInitStats } from "./utils";
 
 // . CLASS DEFINITION
 class FlappyBirdGame {
   _game: Phaser.Game;
   _previousFrame: number | null;
   _gameOver: boolean;
+  _settings: IGenerationChoice;
+  _generationsColors: TGenerationColors[];
   _scene: Phaser.Scene | undefined;
   _stats:
     | {
-        alive: number;
         score: number;
-        highScore: number;
+        generations: IKeyInColors<TSavedGeneration>;
       }
     | undefined;
 
@@ -99,6 +68,8 @@ class FlappyBirdGame {
     this._game = this._CreateGame();
     this._previousFrame = null;
     this._gameOver = true;
+    this._settings = settings;
+    this._generationsColors = GENERATIONS_COLORS;
 
     this._statsText1 = null;
     this._statsText2 = null;
@@ -111,23 +82,20 @@ class FlappyBirdGame {
 
   _InitPopulations() {
     this._populations = [];
-    Object.keys(generationChoice).forEach((gc) => {
-      const castedGenerationKey = gc as TGenerationColors;
-      if (generationChoice[castedGenerationKey].active && this._populations)
+    this._generationsColors.forEach((color) => {
+      if (this._settings[color].active && this._populations)
         this._populations.push(
           this._CreatePopulation(
             GENERATION_BIRD_AMOUNT,
-            generationChoice[castedGenerationKey].nnDefinition,
-            generationChoice[castedGenerationKey].color,
-            generationChoice[castedGenerationKey].previousBest
-              ? JSON.parse(generationChoice[castedGenerationKey].previousBest!)
-                  .genotype
-              : null
+            this._settings[color].nnDefinition,
+            this._settings[color].color,
+            this._settings[color].savedGeneration
           )
         );
     });
+
     let handleResetLocalStorageCallback = () => {
-      Object.keys(generationChoice).forEach((gc) => {
+      this._generationsColors.forEach((gc) => {
         localStorage.removeItem(gc);
       });
     };
@@ -140,7 +108,7 @@ class FlappyBirdGame {
     size: number,
     shapes: INeuronShape[],
     colour: number,
-    defaultGenotype?: number[]
+    savedGeneration?: TSavedGeneration | null
   ) {
     const t = new ffnet.FFNeuralNetwork(shapes);
 
@@ -162,7 +130,7 @@ class FlappyBirdGame {
       shapes: shapes,
       tint: colour,
     };
-    if (defaultGenotype) params.defaultGenotype = defaultGenotype;
+    if (savedGeneration) params.savedGeneration = savedGeneration;
 
     return new population.Population(params);
   }
@@ -184,7 +152,22 @@ class FlappyBirdGame {
     this._previousFrame = null;
   }
 
-  _Init() {
+  _GetPopulationByColor(color: TGenerationColors) {
+    return this._populations?.find(
+      (p) => this._settings[color].color === p._params.tint
+    );
+  }
+
+  _GetStatsPerGen(color: TGenerationColors) {
+    const result = {
+      alive: this._stats?.generations[color].alive || 0,
+      highScore: this._stats?.generations[color].highScore || 0,
+      generationCount: this._GetPopulationByColor(color)?._generations || 0,
+    };
+    return result;
+  }
+
+  _Init(previousGenerations?: IKeyInColors<TSavedGeneration>) {
     for (let i = 0; i < 5; i += 1) {
       this._pipes.push(
         new pipe.PipePairObject({
@@ -198,17 +181,13 @@ class FlappyBirdGame {
     }
 
     this._gameOver = false;
-    this._stats = {
-      alive: 0,
-      score: 0,
-      highScore: Number(highScore),
-    };
+    this._stats = generateInitStats(previousGenerations);
 
     const style = {
-      font: "40px Roboto",
+      font: "20px Roboto",
       fill: "#FFFFFF",
       align: "right",
-      fixedWidth: 210,
+      fixedWidth: 150,
       shadow: {
         offsetX: 2,
         offsetY: 2,
@@ -225,20 +204,16 @@ class FlappyBirdGame {
         this._statsText1.width + 10,
         0,
         "",
-        style
+        { ...style, fixedWidth: 0 }
       );
 
     this._birds = [];
     if (this._populations && this._scene) {
       for (let curPop of this._populations) {
-        curPop.Step(
-          Object.keys(generationChoice).find((key: string) => {
-            return (
-              generationChoice[key as TGenerationColors].color ===
-              curPop._params.tint
-            );
-          })
-        );
+        const color = this._generationsColors.find((key) => {
+          return this._settings[key].color === curPop._params.tint;
+        })!;
+        curPop.Step(color, this._GetStatsPerGen(color));
 
         this._birds.push(
           ...curPop._population.map(
@@ -367,12 +342,43 @@ class FlappyBirdGame {
   }
 
   _CheckGameOver() {
-    const results = this._birds.map((b) => this._IsBirdOutOfBounds(b));
+    const birdSortedByTeam: IKeyInColors<IBird[]> = this._birds.reduce(
+      (acc: { [key in TGenerationColors]: IBird[] }, cur) => {
+        const color = cur._config.pop_params.tint;
+        acc[
+          color == COLOR_RED
+            ? "red"
+            : color == COLOR_BLUE
+            ? "blue"
+            : color == COLOR_GREEN
+            ? "green"
+            : "green"
+        ].push(cur);
+        return acc;
+      },
+      { red: [], green: [], blue: [] }
+    );
 
-    if (this._stats)
-      this._stats.alive = results.reduce((t, r) => (r ? t : t + 1), 0);
+    const results = this._generationsColors.reduce(
+      (acc: { [key in TGenerationColors]: number }, k) => {
+        acc[k] = birdSortedByTeam[k]
+          .map((b) => this._IsBirdOutOfBounds(b))
+          .reduce((t, r) => (r ? t : t + 1), 0);
+        return acc;
+      },
+      { red: 0, blue: 0, green: 0 }
+    );
 
-    if (results.every((b) => b)) {
+    if (this._stats) {
+      this._generationsColors.forEach((k) => {
+        if (this._stats)
+          this._stats.generations[k].alive = birdSortedByTeam[k]
+            .map((b) => this._IsBirdOutOfBounds(b))
+            .reduce((t, r) => (r ? t : t + 1), 0);
+      });
+    }
+
+    if (this._generationsColors.every((k) => results[k] === 0)) {
       this._GameOver();
     }
   }
@@ -433,13 +439,20 @@ class FlappyBirdGame {
 
     const newPipeX = this._pipes[0].X + this._pipes[0].Width;
 
+    // If we progressed passed the last pipe
     if (oldPipeX > _BIRD_POS_X && newPipeX <= _BIRD_POS_X) {
+      // Update general score
       if (this._stats) this._stats.score += 1;
-      if (this._stats && this._stats.score > this._stats.highScore) {
-        this._stats.highScore = this._stats.score;
-        // Update the global high score variable
-        highScore = this._stats.highScore;
-      }
+      // Update highscore of each generation if needed
+      this._generationsColors.forEach((k) => {
+        if (
+          this._stats &&
+          this._stats.score > this._stats.generations[k].highScore &&
+          this._stats.generations[k].alive > 0
+        ) {
+          this._stats.generations[k].highScore = this._stats.score;
+        }
+      });
     }
 
     if (this._pipes[0].X + this._pipes[0].Width <= 0) {
@@ -479,27 +492,51 @@ class FlappyBirdGame {
 
     setTimeout(() => {
       this._Destroy();
-      this._Init();
+      this._Init(
+        this._generationsColors.reduce((acc, k) => {
+          acc[k] = {
+            alive: this._stats?.generations[k].alive || 0,
+            generationCount: this._stats?.generations[k].generationCount || 0,
+            highScore: this._stats?.generations[k].highScore || 0,
+            winningGenotype: this._stats?.generations[k].winningGenotype,
+          };
+          return acc;
+        }, defaultSavedGenerationObject)
+      );
     }, 2000);
   }
 
   _DrawStats() {
-    const text1 = "Generation:\n" + "Score:\n" + "Alive:\n" + "HighScore:\n";
+    const text1 = "Score:\n" + "Generation:\n" + "Alives:\n" + "Highscores:\n";
     if (this._statsText1) this._statsText1.text = text1;
 
     if (this._populations && this._stats && this._statsText2) {
       const text2 =
-        this._populations[0]._generations +
-        "\n" +
         this._stats.score +
         "\n" +
-        this._stats.alive +
+        this._generationsColors.reduce((acc, cur) => {
+          return acc
+            .concat(cur)
+            .concat(`: ${this._GetPopulationByColor(cur)?._generations} `);
+        }, "") +
         "\n" +
-        this._stats.highScore +
+        this._generationsColors.reduce((acc, cur) => {
+          return acc
+            .concat(cur)
+            .concat(`: ${this._stats?.generations[cur].alive} `);
+        }, "") +
+        "\n" +
+        this._generationsColors.reduce((acc, cur) => {
+          return acc
+            .concat(cur)
+            .concat(`: ${this._stats?.generations[cur].highScore} `);
+        }, "") +
         "\n";
       this._statsText2.text = text2;
     }
   }
 }
 
-new FlappyBirdGame();
+const game = new FlappyBirdGame();
+//@ts-ignore
+window.finishGame = () => game._GameOver();
