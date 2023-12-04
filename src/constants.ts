@@ -1,4 +1,3 @@
-import { ffnet } from "./ffnet";
 import {
   IGenerationChoice,
   TGenerationColors,
@@ -27,6 +26,11 @@ export const GENERATION_BIRD_AMOUNT = 100;
 
 export const GENERATIONS_COLORS: TGenerationColors[] = ["red", "blue", "green"];
 
+export const neuralNetworkActivationFunctions = {
+  sigmoid: (z: number[]) => z.map((v) => 1.0 / (1.0 + Math.exp(-v))),
+  relu: (z: number[]) => z.map((v) => Math.max(v, 0)),
+};
+
 export const defaultSavedGenerationObject: {
   [key in TGenerationColors]: TSavedGeneration;
 } = {
@@ -53,8 +57,8 @@ export const settings: IGenerationChoice = {
     color: COLOR_RED,
     nnDefinition: [
       { size: 7 },
-      { size: 5, activation: ffnet.relu },
-      { size: 1, activation: ffnet.sigmoid },
+      { size: 5, activation: neuralNetworkActivationFunctions.relu },
+      { size: 1, activation: neuralNetworkActivationFunctions.sigmoid },
     ],
     savedGeneration: localStorage.getItem("red")
       ? JSON.parse(localStorage.getItem("red")!)
@@ -65,8 +69,8 @@ export const settings: IGenerationChoice = {
     color: COLOR_BLUE,
     nnDefinition: [
       { size: 7 },
-      { size: 9, activation: ffnet.relu },
-      { size: 1, activation: ffnet.sigmoid },
+      { size: 9, activation: neuralNetworkActivationFunctions.relu },
+      { size: 1, activation: neuralNetworkActivationFunctions.sigmoid },
     ],
     savedGeneration: localStorage.getItem("blue")
       ? JSON.parse(localStorage.getItem("blue")!)
@@ -77,9 +81,9 @@ export const settings: IGenerationChoice = {
     color: COLOR_GREEN,
     nnDefinition: [
       { size: 7 },
-      { size: 9, activation: ffnet.relu },
-      { size: 9, activation: ffnet.relu },
-      { size: 1, activation: ffnet.sigmoid },
+      { size: 9, activation: neuralNetworkActivationFunctions.relu },
+      { size: 9, activation: neuralNetworkActivationFunctions.relu },
+      { size: 1, activation: neuralNetworkActivationFunctions.sigmoid },
     ],
     savedGeneration: localStorage.getItem("green")
       ? JSON.parse(localStorage.getItem("green")!)
