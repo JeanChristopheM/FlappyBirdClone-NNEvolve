@@ -3,9 +3,9 @@ import {
   IPopulationParams,
   TGenerationColors,
   TSavedGeneration,
-} from "./interfaces.js";
-import { math } from "./math.js";
-import { getColorStringFromColorNumber } from "./utils.js";
+} from "./interfaces";
+import { rand_normalish } from "./math";
+import { getColorStringFromColorNumber } from "./utils";
 
 export const population = (function () {
   return {
@@ -193,7 +193,7 @@ export const population = (function () {
             const roll = Math.random();
 
             if (roll < mutationOdds) {
-              const magnitude = mutationMagnitude * math.rand_normalish();
+              const magnitude = mutationMagnitude * rand_normalish();
               return x + magnitude;
             }
             return x;

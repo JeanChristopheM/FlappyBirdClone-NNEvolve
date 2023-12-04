@@ -1,16 +1,5 @@
 import { INeuronShape } from "./interfaces";
-
-const mathDot = (a: number[], b: number[]) => {
-  let r = 0;
-  for (let i = 0; i < a.length; i++) {
-    r += a[i] * b[i];
-  }
-  return r;
-};
-
-const mathAdd = (a: number[], b: number[]) => {
-  return a.map((v1, i) => v1 + b[i]);
-};
+import { add, dot } from "./math";
 
 export const ffnet = {
   FFNeuralNetwork: class {
@@ -41,8 +30,8 @@ export const ffnet = {
         const layer_weights = this._weights[i];
         const layer_bias = this._biases[i];
         // z = wx + b
-        const z = mathAdd(
-          layer_weights.map((w) => mathDot(X, w)),
+        const z = add(
+          layer_weights.map((w) => dot(X, w)),
           layer_bias
         );
         // a = σ(z)
