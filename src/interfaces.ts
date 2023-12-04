@@ -143,3 +143,10 @@ export type IGenerationChoice = IKeyInColors<TGenerationState>;
 export type IKeyInColors<T> = {
   [key in TGenerationColors]: T;
 };
+
+export type TGameStats =
+  | {
+      score: number;
+      generations: IKeyInColors<TSavedGeneration>;
+    }
+  | undefined;

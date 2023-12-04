@@ -5,6 +5,7 @@ import {
   TSavedGeneration,
 } from "./interfaces.js";
 import { math } from "./math.js";
+import { getColorStringFromColorNumber } from "./utils.js";
 
 export const population = (function () {
   return {
@@ -14,8 +15,18 @@ export const population = (function () {
       _generations: number;
       _lastGeneration: { parents: IGenotype[] } | null;
       _initialized: boolean;
+      updateStatsGeneration: (
+        color: TGenerationColors,
+        generationCount: number
+      ) => void;
 
-      constructor(params: IPopulationParams) {
+      constructor(
+        params: IPopulationParams,
+        updateStatsGeneration: (
+          color: TGenerationColors,
+          generationCount: number
+        ) => void
+      ) {
         this._params = params;
         this._initialized = false;
         this._population = [...Array(this._params.population_size)].map(
@@ -28,6 +39,7 @@ export const population = (function () {
         );
         this._lastGeneration = null;
         this._generations = params.savedGeneration?.generationCount || 0;
+        this.updateStatsGeneration = updateStatsGeneration;
       }
 
       _CreateRandomGenotype() {
@@ -52,6 +64,10 @@ export const population = (function () {
 
         this._lastGeneration = { parents: parents };
         this._generations += 1;
+        this.updateStatsGeneration(
+          getColorStringFromColorNumber(this._params.tint),
+          this._generations
+        );
         this._SaveGenomeIfBetterThanLocalStorage(
           generationColor,
           generationDetails
@@ -74,7 +90,7 @@ export const population = (function () {
           const currentlySavedString = localStorage.getItem(generationColor);
           const currentlySaved = currentlySavedString
             ? JSON.parse(currentlySavedString)
-            : null;
+            : { alive: 0, highScore: 0, generationCount: 0 };
           const copiedGenotype = this._CopyGenotype(this.Fittest()!, true);
 
           const saveGeneration = (itemToSave: TSavedGeneration) => {
@@ -88,7 +104,7 @@ export const population = (function () {
 
           if (currentlySaved) {
             const savedGenome = currentlySaved.winningGenotype;
-            if (savedGenome?.fitness || 0 < fittest.fitness) {
+            if ((savedGenome?.fitness || 0) < fittest.fitness) {
               itemToSave.highScore = generationDetails?.highScore || 0;
               itemToSave.winningGenotype = copiedGenotype;
             }
