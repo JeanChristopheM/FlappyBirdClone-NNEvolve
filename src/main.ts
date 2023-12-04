@@ -5,6 +5,7 @@ import { pipe } from "./pipe";
 import { population } from "./population";
 import type {
   IBird,
+  IFFNeuralNetwork,
   IGenerationChoice,
   IKeyInColors,
   IKeys,
@@ -39,6 +40,7 @@ import {
 import {
   generateInitStats,
   generateSavingData,
+  getPopulationInitializationParams,
   handleResetLocalStorageCallback,
   loadSky,
   preloadAssets,
@@ -109,24 +111,12 @@ class FlappyBirdGame {
   ) {
     const t = new ffnet.FFNeuralNetwork(shapes);
 
-    const params: IPopulationParams = {
-      population_size: size,
-      genotype: {
-        size: t.toArray().length,
-      },
-      mutation: {
-        magnitude: 0.1,
-        odds: 0.1,
-        decay: 0,
-      },
-      breed: {
-        selectionCutoff: 0.2,
-        immortalityCutoff: 0.05,
-        childrenPercentage: 0.5,
-      },
-      shapes: shapes,
-      tint: colour,
-    };
+    const params: IPopulationParams = getPopulationInitializationParams(
+      t as IFFNeuralNetwork,
+      size,
+      shapes,
+      colour
+    );
     if (savedGeneration) params.savedGeneration = savedGeneration;
 
     return new population.Population(
@@ -290,7 +280,7 @@ class FlappyBirdGame {
       this
     );
 
-    this._Init(generateSavingData(this._generationsColors));
+    this._Init(generateInitStats().generations);
   }
 
   _OnUpdate(scene: Phaser.Scene) {

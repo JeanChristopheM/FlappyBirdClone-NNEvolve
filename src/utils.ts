@@ -6,7 +6,9 @@ import {
   _CONFIG_HEIGHT,
 } from "./constants";
 import {
+  IFFNeuralNetwork,
   IKeyInColors,
+  INeuronShape,
   TGameStats,
   TGenerationColors,
   TSavedGeneration,
@@ -71,8 +73,34 @@ export const getColorStringFromColorNumber = (tint: number) => {
   return GENERATIONS_COLORS.find((color) => settings[color].color === tint)!;
 };
 
-export let handleResetLocalStorageCallback = (colors: TGenerationColors[]) => {
+export const handleResetLocalStorageCallback = (
+  colors: TGenerationColors[]
+) => {
   colors.forEach((gc) => {
     localStorage.removeItem(gc);
   });
 };
+
+export const getPopulationInitializationParams = (
+  neuron: IFFNeuralNetwork,
+  size: number,
+  shapes: INeuronShape[],
+  colour: number
+) => ({
+  population_size: size,
+  genotype: {
+    size: neuron.toArray().length,
+  },
+  mutation: {
+    magnitude: 0.1,
+    odds: 0.1,
+    decay: 0,
+  },
+  breed: {
+    selectionCutoff: 0.2,
+    immortalityCutoff: 0.05,
+    childrenPercentage: 0.5,
+  },
+  shapes: shapes,
+  tint: colour,
+});
