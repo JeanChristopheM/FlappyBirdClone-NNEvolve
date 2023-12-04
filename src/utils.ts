@@ -6,6 +6,7 @@ import {
   _CONFIG_HEIGHT,
 } from "./constants";
 import {
+  IBird,
   IFFNeuralNetwork,
   IKeyInColors,
   INeuronShape,
@@ -104,3 +105,16 @@ export const getPopulationInitializationParams = (
   shapes: shapes,
   tint: colour,
 });
+
+export const getBirdsSortedByColors = (
+  birds: IBird[]
+): IKeyInColors<IBird[]> => {
+  return birds.reduce(
+    (acc: { [key in TGenerationColors]: IBird[] }, cur) => {
+      const color = getColorStringFromColorNumber(cur._config.pop_params.tint);
+      acc[color].push(cur);
+      return acc;
+    },
+    { red: [], green: [], blue: [] }
+  );
+};

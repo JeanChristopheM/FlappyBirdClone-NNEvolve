@@ -18,9 +18,6 @@ import type {
   TSavedGeneration,
 } from "./interfaces";
 import {
-  COLOR_BLUE,
-  COLOR_GREEN,
-  COLOR_RED,
   GENERATIONS_COLORS,
   GENERATION_BIRD_AMOUNT,
   _AMOUT_OF_PIPES_FOR_INPUTS,
@@ -40,6 +37,7 @@ import {
 import {
   generateInitStats,
   generateSavingData,
+  getBirdsSortedByColors,
   getPopulationInitializationParams,
   handleResetLocalStorageCallback,
   loadSky,
@@ -308,22 +306,7 @@ class FlappyBirdGame {
   }
 
   _CheckGameOver() {
-    const birdSortedByTeam: IKeyInColors<IBird[]> = this._birds.reduce(
-      (acc: { [key in TGenerationColors]: IBird[] }, cur) => {
-        const color = cur._config.pop_params.tint;
-        acc[
-          color == COLOR_RED
-            ? "red"
-            : color == COLOR_BLUE
-            ? "blue"
-            : color == COLOR_GREEN
-            ? "green"
-            : "green"
-        ].push(cur);
-        return acc;
-      },
-      { red: [], green: [], blue: [] }
-    );
+    const birdSortedByTeam = getBirdsSortedByColors(this._birds);
 
     const results = this._generationsColors.reduce(
       (acc: { [key in TGenerationColors]: number }, k) => {
@@ -335,12 +318,10 @@ class FlappyBirdGame {
       { red: 0, blue: 0, green: 0 }
     );
 
+    // Updating stats
     if (this._stats) {
       this._generationsColors.forEach((k) => {
-        if (this._stats)
-          this._stats.generations[k].alive = birdSortedByTeam[k]
-            .map((b) => this._IsBirdOutOfBounds(b))
-            .reduce((t, r) => (r ? t : t + 1), 0);
+        if (this._stats) this._stats.generations[k].alive = results[k];
       });
     }
 
