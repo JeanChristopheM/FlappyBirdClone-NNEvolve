@@ -97,6 +97,7 @@ export const getPopulationInitializationParams = (
     odds: 0.1,
     decay: 0,
   },
+  // Total of breeding parameters can not exceed 1
   breed: {
     selectionCutoff: 0.2,
     immortalityCutoff: 0.05,

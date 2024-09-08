@@ -119,10 +119,7 @@ export class Population {
   }
 
   _BreedNewPopulation(parents: IGenotype[]) {
-    function _RouletteSelection(
-      sortedParents: IGenotype[],
-      totalFitness: number
-    ) {
+    function _RandomParent(sortedParents: IGenotype[], totalFitness: number) {
       const roll = Math.random() * totalFitness;
       let sum = 0;
       for (let p of sortedParents) {
@@ -134,21 +131,13 @@ export class Population {
       return sortedParents[sortedParents.length - 1];
     }
 
-    function _RandomParent(
-      sortedParents: IGenotype[],
-      _otherParent: IGenotype,
-      totalFitness: number
-    ) {
-      const p = _RouletteSelection(sortedParents, totalFitness);
-      return p;
-    }
-
     const newPopulation: IGenotype[] = [];
     const totalFitness = parents.reduce((t, p) => t + p.fitness, 0);
     const numChildren = Math.ceil(
       parents.length * this._params.breed.childrenPercentage
     );
 
+    // Group the top "selectionCutoff"% (20% by default) of the population
     const top = [
       ...parents.slice(
         0,
@@ -156,21 +145,27 @@ export class Population {
       ),
     ];
 
+    // . Merge
+    // We fill the new population up to "numChildren"% (50% by default)
+    // with children of the top X% of the population
+    // that have been merged with a random parent
     for (let j = 0; j < numChildren; j++) {
       const i = j % top.length;
-      const p1 = top[i];
-      const p2 = _RandomParent(parents, p1, totalFitness);
+      const parent1 = top[i];
+      const parent2 = _RandomParent(parents, totalFitness);
 
-      const index = Math.round(Math.random() * p1.genotype.length);
+      const index = Math.round(Math.random() * parent1.genotype.length);
 
-      const genotype = p1.genotype
+      const mergedGenotype = parent1.genotype
         .slice(0, index)
-        .concat(p2.genotype.slice(index));
+        .concat(parent2.genotype.slice(index));
 
-      newPopulation.push(this._CopyGenotype({ fitness: 1, genotype }));
+      newPopulation.push(
+        this._CopyGenotype({ fitness: 1, genotype: mergedGenotype })
+      );
     }
 
-    // Let's say keep top X% go through, but with mutations
+    // We group the top "immortalityCutoff"% (5% by default) of the population
     const topX = [
       ...parents.slice(
         0,
@@ -178,9 +173,8 @@ export class Population {
       ),
     ];
 
-    newPopulation.push(...topX.map((x) => this._CopyGenotype(x)));
-
-    // Mutations!
+    // . Mutate
+    // We mutate the new population
     for (let p of newPopulation) {
       // const genotypeLength = p.genotype.length;
       const mutationOdds = this._params.mutation.odds;
@@ -198,6 +192,8 @@ export class Population {
       p.genotype = p.genotype.map((g) => _Mutate(g));
     }
 
+    // . Winners
+    // We fill the new population with the top "immortalityCutoff"% (5% by default)
     // Immortality granted to the winners from the last life.
     // May the odds be forever in your favour.
     newPopulation.push(...topX.map((x) => this._CopyGenotype(x)));

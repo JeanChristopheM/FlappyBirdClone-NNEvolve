@@ -14,7 +14,22 @@
         list-style: none;
       }
     </style>
-    <button id="reset_btn">Reset local storage</button>
+    <div class="controls">
+      <button id="reset_btn">Reset local storage</button>
+      <label for="red"
+        >red
+        <input type="checkbox" id="red" />
+      </label>
+      <label for="blue"
+        >blue
+        <input type="checkbox" id="blue" />
+      </label>
+      <label for="green"
+        >green
+        <input type="checkbox" id="green" />
+      </label>
+    </div>
+    <div class="game" id="game"></div>
     <script src="/src/main.ts" type="module"></script>
   </body>
 </html>

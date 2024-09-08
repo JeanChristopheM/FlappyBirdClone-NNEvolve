@@ -74,6 +74,12 @@ class FlappyBirdGame {
     this._birds = [];
 
     this._InitPopulations();
+
+    const resetBtn: HTMLButtonElement | null =
+      document.querySelector("#reset_btn");
+    if (resetBtn)
+      resetBtn.onclick = () =>
+        handleResetLocalStorageCallback(this._generationsColors);
   }
 
   _InitPopulations() {
@@ -89,12 +95,6 @@ class FlappyBirdGame {
           )
         );
     });
-
-    const resetBtn: HTMLButtonElement | null =
-      document.querySelector("#reset_btn");
-    if (resetBtn)
-      resetBtn.onclick = () =>
-        handleResetLocalStorageCallback(this._generationsColors);
   }
 
   _CreatePopulation(
@@ -234,6 +234,7 @@ class FlappyBirdGame {
         width: _CONFIG_WIDTH,
         height: _CONFIG_HEIGHT,
       },
+      parent: "game",
     };
 
     return new Game(config);
@@ -247,6 +248,7 @@ class FlappyBirdGame {
   _OnCreate() {
     if (!this._scene) return;
     loadSky(this._scene);
+
     this._keys = {
       up: this._scene.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.UP),
       f: this._scene.input.keyboard!.addKey("F"),
@@ -265,7 +267,6 @@ class FlappyBirdGame {
       },
       this
     );
-
     this._keys?.r.on(
       "down",
       () => {
