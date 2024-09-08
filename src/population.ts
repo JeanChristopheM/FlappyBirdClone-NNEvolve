@@ -167,11 +167,11 @@ export const population = (function () {
 
           const index = Math.round(Math.random() * p1.genotype.length);
 
-          const g = p1.genotype
+          const genotype = p1.genotype
             .slice(0, index)
             .concat(p2.genotype.slice(index));
 
-          newPopulation.push(this._CopyGenotype({ fitness: 1, genotype: g }));
+          newPopulation.push(this._CopyGenotype({ fitness: 1, genotype }));
         }
 
         // Let's say keep top X% go through, but with mutations

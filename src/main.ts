@@ -107,10 +107,10 @@ class FlappyBirdGame {
     colour: number,
     savedGeneration?: TSavedGeneration | null
   ) {
-    const t = new ffnet.FFNeuralNetwork(shapes);
+    const neuralNetwork = new ffnet.FFNeuralNetwork(shapes);
 
     const params: IPopulationParams = getPopulationInitializationParams(
-      t as IFFNeuralNetwork,
+      neuralNetwork as IFFNeuralNetwork,
       size,
       shapes,
       colour

@@ -26,9 +26,9 @@ export const ffnet = {
       // For each neuron layer, create a matrix of weights
       for (let i = 1; i < shapes.length; i++) {
         this._weights.push(
-          // [...Array(shapes[i].size)] creates an array of the length of the current layer
+          // [...Array(shapes[i].size)] creates an array of length = amount of neurons in the Current layer
           [...Array(shapes[i].size)].map((_) =>
-            // For each value of that array, create an array of the length of the previous layer
+            // For each value of that array, create an array length = amount of neurons in the Previous layer
             // With values between -1 and 1
             // This is the weight matrix
             _InitRandomArray(shapes[i - 1].size)

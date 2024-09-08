@@ -82,6 +82,8 @@ export interface IPopulationParams {
 
 export interface IGenotype {
   fitness: number;
+  // Refers to the model exported from the FFNeuralNetwork
+  // with the toArray() method
   genotype: number[];
 }
 
