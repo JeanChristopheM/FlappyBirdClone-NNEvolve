@@ -166,16 +166,20 @@ export const bird = (function () {
       }
 
       function _Params(bird: IBird, pipes: IPipe[]) {
+        // Initializing inputs with the distances to the nearest pipes (2 pipes -> 6 inputs)
         const inputs = pipes.map((p) => _PipeParams(bird, p)).flat();
 
+        // Adding the velocity as an input
         inputs.push((bird._velocity / bird._config.gravity) * 0.5 + 0.5);
 
+        // Total of 7 inputs
         return inputs;
       }
 
       const inputs = _Params(this as unknown as IBird, params.nearestPipes);
       const decision = this._model.predict(inputs);
 
+      // If the output of the model is greater than 0.5, the bird jumps
       if (decision[0] > 0.5) {
         this._velocity += this._config.acceleration;
       }

@@ -56,8 +56,11 @@ export const settings: IGenerationChoice = {
     active: true,
     color: COLOR_RED,
     nnDefinition: [
+      // The first item in the array is the input size
       { size: 7 },
+      // The second item is the hidden layer
       { size: 5, activation: neuralNetworkActivationFunctions.relu },
+      // The third item is the output layer
       { size: 1, activation: neuralNetworkActivationFunctions.sigmoid },
     ],
     savedGeneration: localStorage.getItem("red")
@@ -68,6 +71,7 @@ export const settings: IGenerationChoice = {
     active: true,
     color: COLOR_BLUE,
     nnDefinition: [
+      // Same configuration as above
       { size: 7 },
       { size: 9, activation: neuralNetworkActivationFunctions.relu },
       { size: 1, activation: neuralNetworkActivationFunctions.sigmoid },
@@ -81,6 +85,7 @@ export const settings: IGenerationChoice = {
     color: COLOR_GREEN,
     nnDefinition: [
       { size: 7 },
+      // Here we have two hidden layers with 9 neurons each
       { size: 9, activation: neuralNetworkActivationFunctions.relu },
       { size: 9, activation: neuralNetworkActivationFunctions.relu },
       { size: 1, activation: neuralNetworkActivationFunctions.sigmoid },

@@ -26,8 +26,8 @@ export interface IBird {
   _velocity: number;
   _dead: boolean;
   _frameInputs: unknown[];
-  _model: unknown;
-  _populationEntity: unknown;
+  _model: IFFNeuralNetwork;
+  _populationEntity: IPopulation;
   Dead: boolean;
   Alpha: number;
   Bounds: Phaser.Geom.Rectangle;
@@ -48,8 +48,8 @@ export interface INeuronShape {
 
 export interface IFFNeuralNetwork {
   _shapes: INeuronShape[];
-  _biases: Array<unknown[]>;
-  _weights: Array<unknown[]>[];
+  _biases: Array<number[]>;
+  _weights: Array<number[]>[];
 
   new (shapes: INeuronShape[]): IFFNeuralNetwork;
 
