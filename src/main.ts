@@ -1,17 +1,12 @@
 import { Game } from "phaser";
-import { bird } from "./bird";
-import { ffnet } from "./ffnet";
-import { pipe } from "./pipe";
-import { population } from "./population";
+import { FFNeuralNetwork } from "./ffnet";
+import { _PipePairObject } from "./pipe";
+import { Population } from "./population";
 import type {
-  IBird,
-  IFFNeuralNetwork,
   IGenerationChoice,
   IKeyInColors,
   IKeys,
   INeuronShape,
-  IPipe,
-  IPopulation,
   IPopulationParams,
   TGameStats,
   TGenerationColors,
@@ -43,6 +38,7 @@ import {
   loadSky,
   preloadAssets,
 } from "./utils";
+import { _FlappyBirdObject, FlappyBird_NeuralNet } from "./bird";
 
 // . CLASS DEFINITION
 class FlappyBirdGame {
@@ -57,9 +53,9 @@ class FlappyBirdGame {
   _statsText1: Phaser.GameObjects.Text | null;
   _statsText2: Phaser.GameObjects.Text | null;
   _gameOverText: Phaser.GameObjects.Text | null;
-  _pipes: IPipe[];
-  _birds: IBird[];
-  _populations: IPopulation[] | undefined;
+  _pipes: _PipePairObject[];
+  _birds: _FlappyBirdObject[];
+  _populations: Population[] | undefined;
 
   _keys: IKeys | undefined;
 
@@ -107,17 +103,17 @@ class FlappyBirdGame {
     colour: number,
     savedGeneration?: TSavedGeneration | null
   ) {
-    const neuralNetwork = new ffnet.FFNeuralNetwork(shapes);
+    const neuralNetwork = new FFNeuralNetwork(shapes);
 
     const params: IPopulationParams = getPopulationInitializationParams(
-      neuralNetwork as IFFNeuralNetwork,
+      neuralNetwork,
       size,
       shapes,
       colour
     );
     if (savedGeneration) params.savedGeneration = savedGeneration;
 
-    return new population.Population(
+    return new Population(
       params,
       (color: TGenerationColors, generationCount: number) => {
         if (this._stats)
@@ -147,13 +143,13 @@ class FlappyBirdGame {
     // Creating initial 5 pipes.
     for (let i = 0; i < 5; i += 1) {
       this._pipes.push(
-        new pipe.PipePairObject({
+        new _PipePairObject({
           scene: this._scene,
           x: 500 + i * _PIPE_SPACING_X,
           spacing: _PIPE_SPACING_Y,
           speed: _TREADMILL_SPEED,
           config_height: _CONFIG_HEIGHT,
-        }) as unknown as IPipe
+        })
       );
     }
 
@@ -197,7 +193,7 @@ class FlappyBirdGame {
         this._birds.push(
           ...curPop._population.map(
             (p) =>
-              new bird.FlappyBird_NeuralNet({
+              new FlappyBird_NeuralNet({
                 scene: this._scene!,
                 pop_entity: p,
                 pop_params: curPop._params,
@@ -209,7 +205,7 @@ class FlappyBirdGame {
                 treadmill_speed: _TREADMILL_SPEED,
                 acceleration: _UPWARDS_ACCELERATION,
                 gravity: _GRAVITY,
-              }) as unknown as IBird
+              })
           )
         );
       }
@@ -330,7 +326,7 @@ class FlappyBirdGame {
     }
   }
 
-  _IsBirdOutOfBounds(bird: IBird) {
+  _IsBirdOutOfBounds(bird: _FlappyBirdObject) {
     const birdAABB = bird.Bounds;
     birdAABB.top += 10;
     birdAABB.bottom -= 10;
@@ -367,7 +363,6 @@ class FlappyBirdGame {
     if (this._keys) {
       const params = {
         timeElapsed: timeElapsed,
-        keys: { up: Phaser.Input.Keyboard.JustDown(this._keys.up) },
         nearestPipes: this._GetNearestPipes(),
       };
 
