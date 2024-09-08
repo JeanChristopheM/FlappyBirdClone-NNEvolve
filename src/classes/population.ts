@@ -3,9 +3,9 @@ import {
   IPopulationParams,
   TGenerationColors,
   TSavedGeneration,
-} from "./interfaces";
-import { rand_normalish } from "./math";
-import { getColorStringFromColorNumber } from "./utils";
+} from "../interfaces";
+import { rand_normalish } from "../math";
+import { getColorStringFromColorNumber } from "../utils";
 
 export class Population {
   _params: IPopulationParams;

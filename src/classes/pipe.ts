@@ -1,4 +1,4 @@
-import { IPipeParams } from "./interfaces";
+import { IPipeParams } from "../interfaces";
 
 export class _PipePairObject {
   _config: IPipeParams;

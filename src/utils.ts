@@ -1,3 +1,5 @@
+import { _FlappyBirdObject } from "./classes/bird";
+import { FFNeuralNetwork } from "./classes/ffnet";
 import {
   GENERATIONS_COLORS,
   settings,
@@ -6,8 +8,6 @@ import {
   _CONFIG_HEIGHT,
 } from "./constants";
 import {
-  IBird,
-  IFFNeuralNetwork,
   IKeyInColors,
   INeuronShape,
   TGameStats,
@@ -83,7 +83,7 @@ export const handleResetLocalStorageCallback = (
 };
 
 export const getPopulationInitializationParams = (
-  neuron: IFFNeuralNetwork,
+  neuron: FFNeuralNetwork,
   size: number,
   shapes: INeuronShape[],
   colour: number
@@ -107,10 +107,10 @@ export const getPopulationInitializationParams = (
 });
 
 export const getBirdsSortedByColors = (
-  birds: IBird[]
-): IKeyInColors<IBird[]> => {
+  birds: _FlappyBirdObject[]
+): IKeyInColors<_FlappyBirdObject[]> => {
   return birds.reduce(
-    (acc: { [key in TGenerationColors]: IBird[] }, cur) => {
+    (acc: { [key in TGenerationColors]: _FlappyBirdObject[] }, cur) => {
       const color = getColorStringFromColorNumber(cur._config.pop_params.tint);
       acc[color].push(cur);
       return acc;

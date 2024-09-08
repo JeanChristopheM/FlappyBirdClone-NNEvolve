@@ -1,6 +1,6 @@
 import { GameObjects, Scene } from "phaser";
-import { IBirdsParams, IGenotype, IUpdateBirdsParams } from "./interfaces.js";
-import { _UPWARDS_ACCELERATION } from "./constants.js";
+import { IBirdsParams, IGenotype, IUpdateBirdsParams } from "../interfaces.js";
+import { _UPWARDS_ACCELERATION } from "../constants.js";
 import { FFNeuralNetwork } from "./ffnet.js";
 import { _PipePairObject } from "./pipe.js";
 const _BIRD_POS_X = 50;

@@ -1,4 +1,4 @@
-import { _PipePairObject } from "./pipe";
+import { _PipePairObject } from "./classes/pipe";
 
 export interface IKeys {
   up: Phaser.Input.Keyboard.Key;

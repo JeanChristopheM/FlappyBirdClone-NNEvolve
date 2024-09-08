@@ -1,7 +1,7 @@
 import { Game } from "phaser";
-import { FFNeuralNetwork } from "./ffnet";
-import { _PipePairObject } from "./pipe";
-import { Population } from "./population";
+import { FFNeuralNetwork } from "./classes/ffnet";
+import { _PipePairObject } from "./classes/pipe";
+import { Population } from "./classes/population";
 import type {
   IGenerationChoice,
   IKeyInColors,
@@ -38,7 +38,7 @@ import {
   loadSky,
   preloadAssets,
 } from "./utils";
-import { _FlappyBirdObject, FlappyBird_NeuralNet } from "./bird";
+import { _FlappyBirdObject, FlappyBird_NeuralNet } from "./classes/bird";
 
 // . CLASS DEFINITION
 class FlappyBirdGame {
