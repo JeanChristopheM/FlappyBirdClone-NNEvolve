@@ -73,13 +73,60 @@ class FlappyBirdGame {
     this._pipes = [];
     this._birds = [];
 
-    this._InitPopulations();
+    const saveSettings = () => {
+      localStorage.setItem("settings", JSON.stringify(this._settings));
+    };
+    const handleClickCheckbox = (color: TGenerationColors, value: boolean) => {
+      this._settings[color].active = value;
+      saveSettings();
+    };
 
+    // Reset btn initialization
     const resetBtn: HTMLButtonElement | null =
       document.querySelector("#reset_btn");
     if (resetBtn)
       resetBtn.onclick = () =>
         handleResetLocalStorageCallback(this._generationsColors);
+
+    // Checkbox initialization
+    const redCheckbox: HTMLInputElement | null =
+      document.querySelector("#red_checkbox");
+    if (redCheckbox) {
+      redCheckbox.checked = this._settings.red.active;
+      redCheckbox.onclick = (e) => {
+        const target = e.target as HTMLInputElement;
+        handleClickCheckbox("red", target.checked);
+      };
+    }
+    const blueCheckbox: HTMLInputElement | null =
+      document.querySelector("#blue_checkbox");
+    if (blueCheckbox) {
+      blueCheckbox.checked = this._settings.blue.active;
+      blueCheckbox.onclick = (e) => {
+        const target = e.target as HTMLInputElement;
+        handleClickCheckbox("blue", target.checked);
+      };
+    }
+    const greenCheckbox: HTMLInputElement | null =
+      document.querySelector("#green_checkbox");
+    if (greenCheckbox) {
+      greenCheckbox.checked = this._settings.green.active;
+      greenCheckbox.onclick = (e) => {
+        const target = e.target as HTMLInputElement;
+        handleClickCheckbox("green", target.checked);
+      };
+    }
+
+    // Gameover btn initialization
+    const gameOverBtn: HTMLButtonElement | null =
+      document.querySelector("#gameover_btn");
+    if (gameOverBtn) {
+      gameOverBtn.onclick = () => {
+        this._GameOver();
+      };
+    }
+
+    this._InitPopulations();
   }
 
   _InitPopulations() {
@@ -184,10 +231,33 @@ class FlappyBirdGame {
     // Initializing birds and making first generation
     this._birds = [];
     if (this._populations && this._scene) {
+      // If a population does not exist we create it
+      for (const color of this._generationsColors) {
+        if (
+          !this._populations.find(
+            (p) => p._params.tint === settings[color].color
+          ) &&
+          this._settings[color].active
+        ) {
+          this._populations.push(
+            this._CreatePopulation(
+              GENERATION_BIRD_AMOUNT,
+              settings[color].nnDefinition,
+              settings[color].color,
+              settings[color].savedGeneration
+            )
+          );
+        }
+      }
+
+      // Then we process the populations
       for (let curPop of this._populations) {
         const color = this._generationsColors.find((key) => {
           return this._settings[key].color === curPop._params.tint;
         })!;
+        if (!this._settings[color].active) {
+          continue;
+        }
         curPop.Step(color, previousGenerations[color]);
 
         this._birds.push(

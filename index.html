@@ -15,19 +15,24 @@
       }
     </style>
     <div class="controls">
-      <button id="reset_btn">Reset local storage</button>
-      <label for="red"
-        >red
-        <input type="checkbox" id="red" />
-      </label>
-      <label for="blue"
-        >blue
-        <input type="checkbox" id="blue" />
-      </label>
-      <label for="green"
-        >green
-        <input type="checkbox" id="green" />
-      </label>
+      <div class="buttons">
+        <button id="reset_btn">Reset local storage</button>
+        <button id="gameover_btn">Force gameover</button>
+      </div>
+      <div class="checkboxes">
+        <label for="red_checkbox"
+          >red
+          <input type="checkbox" id="red_checkbox" />
+        </label>
+        <label for="blue_checkbox"
+          >blue
+          <input type="checkbox" id="blue_checkbox" />
+        </label>
+        <label for="green_checkbox"
+          >green
+          <input type="checkbox" id="green_checkbox" />
+        </label>
+      </div>
     </div>
     <div class="game" id="game"></div>
     <script src="/src/main.ts" type="module"></script>

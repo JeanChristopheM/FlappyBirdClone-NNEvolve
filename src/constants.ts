@@ -53,7 +53,9 @@ export const defaultSavedGenerationObject: {
 
 export const settings: IGenerationChoice = {
   red: {
-    active: true,
+    active: localStorage.getItem("settings")
+      ? JSON.parse(localStorage.getItem("settings")!).red.active
+      : false,
     color: COLOR_RED,
     nnDefinition: [
       // The first item in the array is the input size
@@ -68,7 +70,9 @@ export const settings: IGenerationChoice = {
       : null,
   },
   blue: {
-    active: true,
+    active: localStorage.getItem("settings")
+      ? JSON.parse(localStorage.getItem("settings")!).blue.active
+      : false,
     color: COLOR_BLUE,
     nnDefinition: [
       // Same configuration as above
@@ -81,7 +85,9 @@ export const settings: IGenerationChoice = {
       : null,
   },
   green: {
-    active: true,
+    active: localStorage.getItem("settings")
+      ? JSON.parse(localStorage.getItem("settings")!).green.active
+      : false,
     color: COLOR_GREEN,
     nnDefinition: [
       { size: 7 },
