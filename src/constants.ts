@@ -1,4 +1,3 @@
-import { ffnet } from "./ffnet";
 import {
   IGenerationChoice,
   TGenerationColors,
@@ -27,6 +26,11 @@ export const GENERATION_BIRD_AMOUNT = 100;
 
 export const GENERATIONS_COLORS: TGenerationColors[] = ["red", "blue", "green"];
 
+export const neuralNetworkActivationFunctions = {
+  sigmoid: (z: number[]) => z.map((v) => 1.0 / (1.0 + Math.exp(-v))),
+  relu: (z: number[]) => z.map((v) => Math.max(v, 0)),
+};
+
 export const defaultSavedGenerationObject: {
   [key in TGenerationColors]: TSavedGeneration;
 } = {
@@ -49,37 +53,48 @@ export const defaultSavedGenerationObject: {
 
 export const settings: IGenerationChoice = {
   red: {
-    active: true,
+    active: localStorage.getItem("settings")
+      ? JSON.parse(localStorage.getItem("settings")!).red.active
+      : false,
     color: COLOR_RED,
     nnDefinition: [
+      // The first item in the array is the input size
       { size: 7 },
-      { size: 5, activation: ffnet.relu },
-      { size: 1, activation: ffnet.sigmoid },
+      // The second item is the hidden layer
+      { size: 5, activation: neuralNetworkActivationFunctions.relu },
+      // The third item is the output layer
+      { size: 1, activation: neuralNetworkActivationFunctions.sigmoid },
     ],
     savedGeneration: localStorage.getItem("red")
       ? JSON.parse(localStorage.getItem("red")!)
       : null,
   },
   blue: {
-    active: true,
+    active: localStorage.getItem("settings")
+      ? JSON.parse(localStorage.getItem("settings")!).blue.active
+      : false,
     color: COLOR_BLUE,
     nnDefinition: [
+      // Same configuration as above
       { size: 7 },
-      { size: 9, activation: ffnet.relu },
-      { size: 1, activation: ffnet.sigmoid },
+      { size: 9, activation: neuralNetworkActivationFunctions.relu },
+      { size: 1, activation: neuralNetworkActivationFunctions.sigmoid },
     ],
     savedGeneration: localStorage.getItem("blue")
       ? JSON.parse(localStorage.getItem("blue")!)
       : null,
   },
   green: {
-    active: true,
+    active: localStorage.getItem("settings")
+      ? JSON.parse(localStorage.getItem("settings")!).green.active
+      : false,
     color: COLOR_GREEN,
     nnDefinition: [
       { size: 7 },
-      { size: 9, activation: ffnet.relu },
-      { size: 9, activation: ffnet.relu },
-      { size: 1, activation: ffnet.sigmoid },
+      // Here we have two hidden layers with 9 neurons each
+      { size: 9, activation: neuralNetworkActivationFunctions.relu },
+      { size: 9, activation: neuralNetworkActivationFunctions.relu },
+      { size: 1, activation: neuralNetworkActivationFunctions.sigmoid },
     ],
     savedGeneration: localStorage.getItem("green")
       ? JSON.parse(localStorage.getItem("green")!)

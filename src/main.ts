@@ -1,26 +1,18 @@
 import { Game } from "phaser";
-import { bird } from "./bird";
-import { ffnet } from "./ffnet";
-import { pipe } from "./pipe";
-import { population } from "./population";
+import { FFNeuralNetwork } from "./classes/ffnet";
+import { _PipePairObject } from "./classes/pipe";
+import { Population } from "./classes/population";
 import type {
-  IBird,
-  IFFNeuralNetwork,
   IGenerationChoice,
   IKeyInColors,
   IKeys,
   INeuronShape,
-  IPipe,
-  IPopulation,
   IPopulationParams,
   TGameStats,
   TGenerationColors,
   TSavedGeneration,
 } from "./interfaces";
 import {
-  COLOR_BLUE,
-  COLOR_GREEN,
-  COLOR_RED,
   GENERATIONS_COLORS,
   GENERATION_BIRD_AMOUNT,
   _AMOUT_OF_PIPES_FOR_INPUTS,
@@ -40,11 +32,13 @@ import {
 import {
   generateInitStats,
   generateSavingData,
+  getBirdsSortedByColors,
   getPopulationInitializationParams,
   handleResetLocalStorageCallback,
   loadSky,
   preloadAssets,
 } from "./utils";
+import { _FlappyBirdObject, FlappyBird_NeuralNet } from "./classes/bird";
 
 // . CLASS DEFINITION
 class FlappyBirdGame {
@@ -59,9 +53,9 @@ class FlappyBirdGame {
   _statsText1: Phaser.GameObjects.Text | null;
   _statsText2: Phaser.GameObjects.Text | null;
   _gameOverText: Phaser.GameObjects.Text | null;
-  _pipes: IPipe[];
-  _birds: IBird[];
-  _populations: IPopulation[] | undefined;
+  _pipes: _PipePairObject[];
+  _birds: _FlappyBirdObject[];
+  _populations: Population[] | undefined;
 
   _keys: IKeys | undefined;
 
@@ -79,6 +73,59 @@ class FlappyBirdGame {
     this._pipes = [];
     this._birds = [];
 
+    const saveSettings = () => {
+      localStorage.setItem("settings", JSON.stringify(this._settings));
+    };
+    const handleClickCheckbox = (color: TGenerationColors, value: boolean) => {
+      this._settings[color].active = value;
+      saveSettings();
+    };
+
+    // Reset btn initialization
+    const resetBtn: HTMLButtonElement | null =
+      document.querySelector("#reset_btn");
+    if (resetBtn)
+      resetBtn.onclick = () =>
+        handleResetLocalStorageCallback(this._generationsColors);
+
+    // Checkbox initialization
+    const redCheckbox: HTMLInputElement | null =
+      document.querySelector("#red_checkbox");
+    if (redCheckbox) {
+      redCheckbox.checked = this._settings.red.active;
+      redCheckbox.onclick = (e) => {
+        const target = e.target as HTMLInputElement;
+        handleClickCheckbox("red", target.checked);
+      };
+    }
+    const blueCheckbox: HTMLInputElement | null =
+      document.querySelector("#blue_checkbox");
+    if (blueCheckbox) {
+      blueCheckbox.checked = this._settings.blue.active;
+      blueCheckbox.onclick = (e) => {
+        const target = e.target as HTMLInputElement;
+        handleClickCheckbox("blue", target.checked);
+      };
+    }
+    const greenCheckbox: HTMLInputElement | null =
+      document.querySelector("#green_checkbox");
+    if (greenCheckbox) {
+      greenCheckbox.checked = this._settings.green.active;
+      greenCheckbox.onclick = (e) => {
+        const target = e.target as HTMLInputElement;
+        handleClickCheckbox("green", target.checked);
+      };
+    }
+
+    // Gameover btn initialization
+    const gameOverBtn: HTMLButtonElement | null =
+      document.querySelector("#gameover_btn");
+    if (gameOverBtn) {
+      gameOverBtn.onclick = () => {
+        this._GameOver();
+      };
+    }
+
     this._InitPopulations();
   }
 
@@ -95,12 +142,6 @@ class FlappyBirdGame {
           )
         );
     });
-
-    const resetBtn: HTMLButtonElement | null =
-      document.querySelector("#reset_btn");
-    if (resetBtn)
-      resetBtn.onclick = () =>
-        handleResetLocalStorageCallback(this._generationsColors);
   }
 
   _CreatePopulation(
@@ -109,17 +150,17 @@ class FlappyBirdGame {
     colour: number,
     savedGeneration?: TSavedGeneration | null
   ) {
-    const t = new ffnet.FFNeuralNetwork(shapes);
+    const neuralNetwork = new FFNeuralNetwork(shapes);
 
     const params: IPopulationParams = getPopulationInitializationParams(
-      t as IFFNeuralNetwork,
+      neuralNetwork,
       size,
       shapes,
       colour
     );
     if (savedGeneration) params.savedGeneration = savedGeneration;
 
-    return new population.Population(
+    return new Population(
       params,
       (color: TGenerationColors, generationCount: number) => {
         if (this._stats)
@@ -149,13 +190,13 @@ class FlappyBirdGame {
     // Creating initial 5 pipes.
     for (let i = 0; i < 5; i += 1) {
       this._pipes.push(
-        new pipe.PipePairObject({
+        new _PipePairObject({
           scene: this._scene,
           x: 500 + i * _PIPE_SPACING_X,
           spacing: _PIPE_SPACING_Y,
           speed: _TREADMILL_SPEED,
           config_height: _CONFIG_HEIGHT,
-        }) as unknown as IPipe
+        })
       );
     }
 
@@ -190,16 +231,39 @@ class FlappyBirdGame {
     // Initializing birds and making first generation
     this._birds = [];
     if (this._populations && this._scene) {
+      // If a population does not exist we create it
+      for (const color of this._generationsColors) {
+        if (
+          !this._populations.find(
+            (p) => p._params.tint === settings[color].color
+          ) &&
+          this._settings[color].active
+        ) {
+          this._populations.push(
+            this._CreatePopulation(
+              GENERATION_BIRD_AMOUNT,
+              settings[color].nnDefinition,
+              settings[color].color,
+              settings[color].savedGeneration
+            )
+          );
+        }
+      }
+
+      // Then we process the populations
       for (let curPop of this._populations) {
         const color = this._generationsColors.find((key) => {
           return this._settings[key].color === curPop._params.tint;
         })!;
+        if (!this._settings[color].active) {
+          continue;
+        }
         curPop.Step(color, previousGenerations[color]);
 
         this._birds.push(
           ...curPop._population.map(
             (p) =>
-              new bird.FlappyBird_NeuralNet({
+              new FlappyBird_NeuralNet({
                 scene: this._scene!,
                 pop_entity: p,
                 pop_params: curPop._params,
@@ -211,7 +275,7 @@ class FlappyBirdGame {
                 treadmill_speed: _TREADMILL_SPEED,
                 acceleration: _UPWARDS_ACCELERATION,
                 gravity: _GRAVITY,
-              }) as unknown as IBird
+              })
           )
         );
       }
@@ -240,6 +304,7 @@ class FlappyBirdGame {
         width: _CONFIG_WIDTH,
         height: _CONFIG_HEIGHT,
       },
+      parent: "game",
     };
 
     return new Game(config);
@@ -253,6 +318,7 @@ class FlappyBirdGame {
   _OnCreate() {
     if (!this._scene) return;
     loadSky(this._scene);
+
     this._keys = {
       up: this._scene.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.UP),
       f: this._scene.input.keyboard!.addKey("F"),
@@ -271,7 +337,6 @@ class FlappyBirdGame {
       },
       this
     );
-
     this._keys?.r.on(
       "down",
       () => {
@@ -308,22 +373,7 @@ class FlappyBirdGame {
   }
 
   _CheckGameOver() {
-    const birdSortedByTeam: IKeyInColors<IBird[]> = this._birds.reduce(
-      (acc: { [key in TGenerationColors]: IBird[] }, cur) => {
-        const color = cur._config.pop_params.tint;
-        acc[
-          color == COLOR_RED
-            ? "red"
-            : color == COLOR_BLUE
-            ? "blue"
-            : color == COLOR_GREEN
-            ? "green"
-            : "green"
-        ].push(cur);
-        return acc;
-      },
-      { red: [], green: [], blue: [] }
-    );
+    const birdSortedByTeam = getBirdsSortedByColors(this._birds);
 
     const results = this._generationsColors.reduce(
       (acc: { [key in TGenerationColors]: number }, k) => {
@@ -335,12 +385,10 @@ class FlappyBirdGame {
       { red: 0, blue: 0, green: 0 }
     );
 
+    // Updating stats
     if (this._stats) {
       this._generationsColors.forEach((k) => {
-        if (this._stats)
-          this._stats.generations[k].alive = birdSortedByTeam[k]
-            .map((b) => this._IsBirdOutOfBounds(b))
-            .reduce((t, r) => (r ? t : t + 1), 0);
+        if (this._stats) this._stats.generations[k].alive = results[k];
       });
     }
 
@@ -349,7 +397,7 @@ class FlappyBirdGame {
     }
   }
 
-  _IsBirdOutOfBounds(bird: IBird) {
+  _IsBirdOutOfBounds(bird: _FlappyBirdObject) {
     const birdAABB = bird.Bounds;
     birdAABB.top += 10;
     birdAABB.bottom -= 10;
@@ -386,7 +434,6 @@ class FlappyBirdGame {
     if (this._keys) {
       const params = {
         timeElapsed: timeElapsed,
-        keys: { up: Phaser.Input.Keyboard.JustDown(this._keys.up) },
         nearestPipes: this._GetNearestPipes(),
       };
 
