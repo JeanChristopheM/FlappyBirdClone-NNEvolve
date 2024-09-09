@@ -1,8 +1,16 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <script type="module" crossorigin src="/FlappyBirdClone-NNEvolve/assets/index-OOQ3vYcV.js"></script>
-    <link rel="stylesheet" crossorigin href="/FlappyBirdClone-NNEvolve/assets/index-BlfG3yvA.css">
+    <script
+      type="module"
+      crossorigin
+      src="/FlappyBirdClone-NNEvolve/assets/index-GE-qgO1j.js"
+    ></script>
+    <link
+      rel="stylesheet"
+      crossorigin
+      href="/FlappyBirdClone-NNEvolve/assets/index-R0v9phHc.css"
+    />
   </head>
   <body>
     <style>
@@ -15,6 +23,26 @@
         list-style: none;
       }
     </style>
-    <button id="reset_btn">Reset local storage</button>
+    <div class="controls">
+      <div class="buttons">
+        <button id="reset_btn">Reset local storage</button>
+        <button id="gameover_btn">Force gameover</button>
+      </div>
+      <div class="checkboxes">
+        <label for="red_checkbox"
+          >red
+          <input type="checkbox" id="red_checkbox" />
+        </label>
+        <label for="blue_checkbox"
+          >blue
+          <input type="checkbox" id="blue_checkbox" />
+        </label>
+        <label for="green_checkbox"
+          >green
+          <input type="checkbox" id="green_checkbox" />
+        </label>
+      </div>
+    </div>
+    <div class="game" id="game"></div>
   </body>
 </html>
